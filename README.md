@@ -2,7 +2,7 @@
 
 Highly secure and intensive data relay between two computers.
 
-A simple and flexible Rust executable-based local transfer tool to send and receive text, images, videos, and files securely using the ImGUI library.
+A simple and flexible Rust executable-based local transfer tool to send and receive text, images, videos, and files securely using native UIs.
 
 ## Why?
 
