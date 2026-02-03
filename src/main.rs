@@ -24,6 +24,10 @@ struct AstropathicRelayApp {
 
 impl AstropathicRelayApp {
     fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+        Self::new_with_defaults()
+    }
+
+    pub fn new_with_defaults() -> Self {
         let ip = local_ip_address::local_ip()
             .map(|ip| ip.to_string())
             .unwrap_or_else(|_| "Unknown".to_string());
@@ -42,5 +46,25 @@ impl eframe::App for AstropathicRelayApp {
             ui.label("Securely connect to devices on your LAN.");
             ui.add_space(10.0)
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_initial_ui_fields() {
+        let app = AstropathicRelayApp::new_with_defaults();
+
+        assert_eq!(
+            app.target_ip,
+            local_ip_address::local_ip().unwrap().to_string()
+        );
+
+        match app.state {
+            AppState::Idle => (),
+            _ => panic!("Initial state should be Idle"),
+        }
     }
 }
