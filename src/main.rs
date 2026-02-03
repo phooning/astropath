@@ -10,12 +10,28 @@ fn main() {
     .unwrap();
 }
 
-#[derive(Default)]
-struct AstropathicRelayApp {}
+enum AppState {
+    Idle,
+    Connecting,
+    Connected,
+    Error(String),
+}
+
+struct AstropathicRelayApp {
+    state: AppState,
+    target_ip: String,
+}
 
 impl AstropathicRelayApp {
     fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        Self::default()
+        let ip = local_ip_address::local_ip()
+            .map(|ip| ip.to_string())
+            .unwrap_or_else(|_| "Unknown".to_string());
+
+        Self {
+            state: AppState::Idle,
+            target_ip: ip,
+        }
     }
 }
 
