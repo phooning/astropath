@@ -66,5 +66,11 @@ mod tests {
             AppState::Idle => (),
             _ => panic!("Initial state should be Idle"),
         }
+
+        let expected_ip = local_ip_address::local_ip().unwrap().to_string();
+        assert_eq!(
+            app.target_ip, expected_ip,
+            "Target IP should match local IP address."
+        );
     }
 }
