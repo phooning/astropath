@@ -20,7 +20,7 @@ enum AppState {
 
 struct AstropathicRelayApp {
     state: AppState,
-    target_ip: String,
+    target_ip: CopyField,
 }
 
 impl AstropathicRelayApp {
@@ -35,7 +35,7 @@ impl AstropathicRelayApp {
 
         Self {
             state: AppState::Idle,
-            target_ip: ip,
+            target_ip: CopyField::new(&ip),
         }
     }
 }
@@ -66,6 +66,11 @@ impl CopyField {
                 ui.ctx().copy_text(self.value.clone());
                 self.last_copied = Some(Instant::now());
             }
+
+            // Request repaint in the copied state.
+            if is_recent {
+                ui.ctx().request_repaint();
+            }
         });
     }
 }
@@ -76,8 +81,13 @@ impl eframe::App for AstropathicRelayApp {
             ui.heading("Astropathic Relay");
             ui.label("Securely connect to devices on your LAN.");
             ui.add_space(10.0);
+            ui.separator();
 
             if let Ok(ip) = local_ip_address::local_ip() {
+                ui.group(|ui| {
+                    ui.label("Your Local IP Address:");
+                });
+
                 ui.horizontal(|ui| {
                     ui.label("Your Local IP Address:");
                     ui.label(
@@ -106,8 +116,8 @@ mod tests {
         let app = AstropathicRelayApp::new_with_defaults();
 
         assert_eq!(
-            app.target_ip,
-            local_ip_address::local_ip().unwrap().to_string()
+            app.target_ip.value,
+            local_ip_address::local_ip().unwrap().to_string(),
         );
 
         match app.state {
@@ -117,7 +127,7 @@ mod tests {
 
         let expected_ip = local_ip_address::local_ip().unwrap().to_string();
         assert_eq!(
-            app.target_ip, expected_ip,
+            app.target_ip.value, expected_ip,
             "Target IP should match local IP address."
         );
     }
