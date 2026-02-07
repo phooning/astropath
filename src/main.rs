@@ -55,14 +55,20 @@ impl CopyField {
 
     fn ui(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.label(&self.value);
+            ui.label(
+                egui::RichText::new(format!("{}", &self.value))
+                    .strong()
+                    .color(egui::Color32::LIGHT_BLUE),
+            );
 
             let is_recent = self
                 .last_copied
                 .map(|t| t.elapsed() < Duration::from_secs(2))
                 .unwrap_or(false);
 
-            if ui.button("Copy").clicked() {
+            let label = if is_recent { "Copied" } else { "Copy" };
+
+            if ui.button(label).clicked() {
                 ui.ctx().copy_text(self.value.clone());
                 self.last_copied = Some(Instant::now());
             }
@@ -84,24 +90,15 @@ impl eframe::App for AstropathicRelayApp {
             ui.separator();
 
             if let Ok(ip) = local_ip_address::local_ip() {
-                ui.group(|ui| {
-                    ui.label("Your Local IP Address:");
-                });
-
                 ui.horizontal(|ui| {
                     ui.label("Your Local IP Address:");
-                    ui.label(
-                        egui::RichText::new(format!("{}", ip))
-                            .strong()
-                            .color(egui::Color32::LIGHT_BLUE),
-                    );
-
-                    if ui.button("Copy").clicked() {
-                        ui.ctx().copy_text(ip.to_string());
-                    }
+                    self.target_ip.ui(ui);
                 });
             } else {
-                ui.label("Unable to determine local IP address.");
+                ui.horizontal(|ui| {
+                    ui.label("Your Local IP Address:");
+                    ui.label("Unable to determine local IP address.");
+                });
             }
         });
     }
