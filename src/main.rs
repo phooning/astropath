@@ -20,6 +20,7 @@ enum AppState {
 
 struct AstropathicRelayApp {
     state: AppState,
+    port: String,
     target_ip: CopyField,
 }
 
@@ -35,8 +36,15 @@ impl AstropathicRelayApp {
 
         Self {
             state: AppState::Idle,
+            port: "9001".to_owned(),
             target_ip: CopyField::new(&ip),
         }
+    }
+
+    fn start_host(&mut self) {
+        let port = self.port.parse::<u16>().unwrap_or(9001);
+        // TODO: Spawn server thread and listen for incoming connections on the specified port.
+        // Should this be done automatically?
     }
 }
 
@@ -99,6 +107,15 @@ impl eframe::App for AstropathicRelayApp {
                     ui.label("Your Local IP Address:");
                     ui.label("Unable to determine local IP address.");
                 });
+            }
+
+            ui.horizontal(|ui| {
+                ui.label("Port:");
+                ui.text_edit_singleline(&mut self.port);
+            });
+
+            if ui.button("Host (Wait for connection)").clicked() {
+                self.start_host();
             }
         });
     }
