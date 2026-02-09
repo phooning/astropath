@@ -1,5 +1,10 @@
+mod net;
+
 use eframe::egui;
 use std::time::{Duration, Instant};
+use tokio::{runtime::Runtime, sync::mpsc};
+
+use crate::net::NetEvent;
 
 fn main() {
     let native_options = eframe::NativeOptions::default();
@@ -19,9 +24,12 @@ enum AppState {
 }
 
 struct AstropathicRelayApp {
+    rt: Runtime,
     state: AppState,
     port: String,
     target_ip: CopyField,
+    receiver: mpsc::Receiver<NetEvent>,
+    transmitter: mpsc::Sender<NetEvent>,
 }
 
 impl AstropathicRelayApp {
@@ -34,10 +42,20 @@ impl AstropathicRelayApp {
             .map(|ip| ip.to_string())
             .unwrap_or_else(|_| "Unknown".to_string());
 
+        let rt = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+
+        let (tx, rx): (mpsc::Sender<NetEvent>, mpsc::Receiver<NetEvent>) = mpsc::channel(100);
+
         Self {
-            state: AppState::Idle,
+            rt,
             port: "9001".to_owned(),
+            state: AppState::Idle,
             target_ip: CopyField::new(&ip),
+            receiver: rx,
+            transmitter: tx,
         }
     }
 
