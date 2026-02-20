@@ -4,7 +4,7 @@ Astropath is written under the assumption our local network is already compromis
 
 ## Authentication
 
-Astropath uses mTLS with pinned certificates to confirm machine identity.
+Use mTLS with pinned certificates to confirm machine identity.
 
 ## File Handling
 
@@ -12,4 +12,4 @@ Large video files use chunked transfer with identity verification per chunk.
 
 ## Memory Security
 
-Astropath uses `zeroize` to clear memory after use.
+Uses `zeroize` to clear memory after use.
