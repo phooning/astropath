@@ -27,6 +27,8 @@ enum AppState {
     Error(String),
 }
 
+const DEFAULT_PORT: u16 = 9001;
+
 struct AstropathicRelayApp {
     rt: Runtime,
     state: AppState,
@@ -75,9 +77,10 @@ impl AstropathicRelayApp {
     }
 
     fn start_host(&mut self) {
-        let port = self.port.parse::<u16>().unwrap_or(9001);
+        let port = self.port.parse::<u16>().unwrap_or(DEFAULT_PORT);
         // TODO: Spawn server thread and listen for incoming connections on the specified port.
         // Should this be done automatically?
+        // let (tx, rx) = mpsc::channel(100);
     }
 }
 
