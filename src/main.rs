@@ -2,7 +2,11 @@ mod net;
 
 use eframe::egui;
 use std::time::{Duration, Instant};
-use tokio::{runtime::Runtime, sync::mpsc};
+use tailscale_localapi::LocalApi;
+use tokio::{
+    runtime::Runtime,
+    sync::{mpsc, watch::Receiver},
+};
 
 use crate::net::NetEvent;
 
@@ -30,6 +34,10 @@ struct AstropathicRelayApp {
     target_ip: CopyField,
     receiver: mpsc::Receiver<NetEvent>,
     transmitter: mpsc::Sender<NetEvent>,
+    tailscale_toggle: ToggleField,
+    tailscale_rx: Option<Receiver<TailscaleResult>>,
+    tailscale_ips: Vec<String>,
+    is_loading: bool,
 }
 
 impl AstropathicRelayApp {
@@ -56,6 +64,13 @@ impl AstropathicRelayApp {
             target_ip: CopyField::new(&ip),
             receiver: rx,
             transmitter: tx,
+            tailscale_toggle: ToggleField {
+                value: String::from("Tailscale LAN"),
+                is_on: false,
+            },
+            tailscale_ips: Vec::new(),
+            tailscale_rx: None,
+            is_loading: false,
         }
     }
 
@@ -107,6 +122,22 @@ impl CopyField {
     }
 }
 
+struct ToggleField {
+    value: String,
+    is_on: bool,
+}
+
+impl ToggleField {
+    fn new(value: &str) -> Self {
+        Self {
+            value: value.to_string(),
+            is_on: false,
+        }
+    }
+}
+
+type TailscaleResult = Result<Vec<String>, String>;
+
 impl eframe::App for AstropathicRelayApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -126,6 +157,19 @@ impl eframe::App for AstropathicRelayApp {
                     ui.label("Unable to determine local IP address.");
                 });
             }
+
+            ui.horizontal(|ui| {
+                ui.label("Scan Tailscale LAN");
+                if ui
+                    .add(egui::Checkbox::new(
+                        &mut self.tailscale_toggle.is_on,
+                        "Toggle",
+                    ))
+                    .changed()
+                {
+                    // Initialize TailScale local API
+                }
+            });
 
             ui.horizontal(|ui| {
                 ui.label("Port:");
