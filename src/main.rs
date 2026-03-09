@@ -30,6 +30,7 @@ struct AstropathicRelayApp {
     state: AppState,
     port: String,
     target_ip: CopyField,
+    tailscale_ip: Option<CopyField>,
     receiver: mpsc::Receiver<NetEvent>,
     transmitter: mpsc::Sender<NetEvent>,
 }
@@ -44,6 +45,24 @@ impl AstropathicRelayApp {
             .map(|ip| ip.to_string())
             .unwrap_or_else(|_| "Unknown".to_string());
 
+        let mut tailscale_ip_str = None;
+        if let Ok(interfaces) = local_ip_address::list_afinet_netifas() {
+            for (name, if_ip) in interfaces {
+                let name_lower = name.to_lowercase();
+                if name_lower.contains("tailscale") {
+                    tailscale_ip_str = Some(if_ip.to_string());
+                    break;
+                }
+                if let std::net::IpAddr::V4(ipv4) = if_ip {
+                    let octets = ipv4.octets();
+                    // CGNAT range 100.64.0.0/10 used by Tailscale
+                    if octets[0] == 100 && (64..=127).contains(&octets[1]) {
+                        tailscale_ip_str = Some(if_ip.to_string());
+                    }
+                }
+            }
+        }
+
         let rt = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
@@ -56,6 +75,7 @@ impl AstropathicRelayApp {
             port: "9001".to_owned(),
             state: AppState::Idle,
             target_ip: CopyField::new(&ip),
+            tailscale_ip: tailscale_ip_str.map(|s| CopyField::new(&s)),
             receiver: rx,
             transmitter: tx,
         }
@@ -63,9 +83,28 @@ impl AstropathicRelayApp {
 
     fn start_host(&mut self) {
         let port = self.port.parse::<u16>().unwrap_or(DEFAULT_PORT);
-        // TODO: Spawn server thread and listen for incoming connections on the specified port.
-        // Should this be done automatically?
-        // let (tx, rx) = mpsc::channel(100);
+        let tx = self.transmitter.clone();
+
+        self.rt.spawn(async move {
+            let addr = format!("0.0.0.0:{}", port);
+            match tokio::net::TcpListener::bind(&addr).await {
+                Ok(listener) => loop {
+                    match listener.accept().await {
+                        Ok((_stream, client_addr)) => {
+                            let _ = tx.send(NetEvent::Connected(client_addr)).await;
+                        }
+                        Err(e) => {
+                            let _ = tx.send(NetEvent::Error(e.to_string())).await;
+                        }
+                    }
+                },
+                Err(e) => {
+                    let _ = tx.send(NetEvent::Error(e.to_string())).await;
+                }
+            }
+        });
+
+        self.state = AppState::Connecting;
     }
 }
 
@@ -118,7 +157,7 @@ impl eframe::App for AstropathicRelayApp {
             ui.add_space(10.0);
             ui.separator();
 
-            if let Ok(ip) = local_ip_address::local_ip() {
+            if local_ip_address::local_ip().is_ok() {
                 ui.horizontal(|ui| {
                     ui.label("Your Local IP Address:");
                     self.target_ip.ui(ui);
@@ -127,6 +166,13 @@ impl eframe::App for AstropathicRelayApp {
                 ui.horizontal(|ui| {
                     ui.label("Your Local IP Address:");
                     ui.label("Unable to determine local IP address.");
+                });
+            }
+
+            if let Some(ts_ip) = self.tailscale_ip.as_mut() {
+                ui.horizontal(|ui| {
+                    ui.label("Tailscale IP Address:");
+                    ts_ip.ui(ui);
                 });
             }
 

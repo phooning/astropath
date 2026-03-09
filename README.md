@@ -1,4 +1,4 @@
-# Astropathic Relay
+# Astropathic Relay (WIP)
 
 Highly secure and intensive data relay between two computers.
 
@@ -23,4 +23,3 @@ openssl req -x509 -newkey rsa:4096 -nodes -keyout server_key.pem -out server_cer
 ## License
 
 Apache License 2.0
-
